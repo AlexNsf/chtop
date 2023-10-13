@@ -1,5 +1,5 @@
 from textual.app import App, ComposeResult
-from textual.widgets import Header, Footer
+from textual.widgets import Header, Footer, Button, DataTable
 from clickhouse_driver import Client
 from textual_plotext import PlotextPlot
 from textual.screen import Screen
@@ -124,7 +124,35 @@ class MainScreen(Screen):
             yield QueryAmountPlot("Running queries amount")
             yield SendReceivedBytes("Send and received bytes via network", unit="Bytes")
             yield ErrorsAmountPlot("Errors amount")
+            yield Button()
         yield Footer()
+
+
+class AllRunningQueries(DataTable):
+    BINDINGS = [
+        ("escape", "app.pop_screen", "Pop screen"),
+    ]
+
+    def on_mount(self) -> None:
+        self.add_column("id", key="id")
+        self.add_column("Memory usage", key="memory_usage")
+        self.add_column("Elapsed (total time of execution)", key="elapsed")
+        self.set_interval(1, self.update, pause=False)
+
+    def update(self):
+        for query_id, memory_usage, elapsed in client.execute("SELECT query_id, memory_usage, elapsed FROM system.processes"):
+            row = {"query_id": query_id, "memory_usage": memory_usage, "elapsed": elapsed}
+            if not self.rows.get(query_id):
+                self.add_row(query_id, memory_usage, elapsed, key=query_id)
+            else:
+                for column_key, _ in self.columns:
+                    if self.get_cell(row_key=query_id, column_key=column_key) != row[column_key]:
+                        self.update_cell(row_key=query_id, column_key=column_key, value=row[column_key])
+
+
+class AllQueriesScreen(Screen):
+    def compose(self) -> ComposeResult:
+        yield AllRunningQueries()
 
 
 class CHTopApp(App):
@@ -134,8 +162,12 @@ class CHTopApp(App):
     }
     """
 
+    def on_button_pressed(self):
+        self.push_screen("all_queries")
+
     def on_mount(self) -> None:
         self.install_screen(MainScreen(), name="main")
+        self.install_screen(AllQueriesScreen(), name="all_queries")
         self.push_screen("main")
 
 
