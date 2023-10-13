@@ -124,7 +124,7 @@ class MainScreen(Screen):
             yield QueryAmountPlot("Running queries amount")
             yield SendReceivedBytes("Send and received bytes via network", unit="Bytes")
             yield ErrorsAmountPlot("Errors amount")
-            yield Button()
+            yield Button("All running queries")
         yield Footer()
 
 
@@ -158,7 +158,7 @@ class AllRunningQueries(DataTable):
             self.remove_row(query_id)
 
 
-class AllQueriesScreen(Screen):
+class AllRunningQueriesScreen(Screen):
     def compose(self) -> ComposeResult:
         yield AllRunningQueries()
 
@@ -175,7 +175,7 @@ class CHTopApp(App):
 
     def on_mount(self) -> None:
         self.install_screen(MainScreen(), name="main")
-        self.install_screen(AllQueriesScreen(), name="all_queries")
+        self.install_screen(AllRunningQueriesScreen(), name="all_queries")
         self.push_screen("main")
 
 
