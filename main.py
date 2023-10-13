@@ -140,14 +140,22 @@ class AllRunningQueries(DataTable):
         self.set_interval(1, self.update, pause=False)
 
     def update(self):
+        present_query_ids = set()
+
         for query_id, memory_usage, elapsed in client.execute("SELECT query_id, memory_usage, elapsed FROM system.processes"):
+            present_query_ids.add(query_id)
             row = {"query_id": query_id, "memory_usage": memory_usage, "elapsed": elapsed}
+
             if not self.rows.get(query_id):
                 self.add_row(query_id, memory_usage, elapsed, key=query_id)
             else:
                 for column_key, _ in self.columns:
                     if self.get_cell(row_key=query_id, column_key=column_key) != row[column_key]:
                         self.update_cell(row_key=query_id, column_key=column_key, value=row[column_key])
+
+        ids_to_delete = set(self.rows.keys()) - present_query_ids
+        for query_id in ids_to_delete:
+            self.remove_row(query_id)
 
 
 class AllQueriesScreen(Screen):
